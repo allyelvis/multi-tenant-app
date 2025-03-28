@@ -1,0 +1,103 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  passwordHash  String
+  status        String        @default("pending") // active, inactive, pending
+  lastLogin     DateTime?
+  createdAt     DateTime      @default(now  // active, inactive, pending
+  lastLogin     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenantUsers   TenantUser[]
+  
+  @@map("users")
+}
+
+model Tenant {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  domain        String?
+  description   String?
+  plan          String        @default("free") // free, pro, enterprise
+  status        String        @default("active") // active, inactive, pending
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenantUsers   TenantUser[]
+  tenantConfig  TenantConfig?
+  projects      Project[]
+  
+  @@map("tenants")
+}
+
+model TenantUser {
+  id            String        @id @default(cuid())
+  tenantId      String
+  userId        String
+  role          String        @default("member") // admin, member, viewer
+  status        String        @default("pending") // active, inactive, pending
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([tenantId, userId])
+  @@map("tenant_users")
+}
+
+model TenantConfig {
+  id            String        @id @default(cuid())
+  tenantId      String        @unique
+  theme         Json          @default("{}")
+  features      Json          @default("{}")
+  settings      Json          @default("{}")
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
+  @@map("tenant_configs")
+}
+
+model Project {
+  id            String        @id @default(cuid())
+  tenantId      String
+  name          String
+  description   String?
+  status        String        @default("active") // active, inactive, archived
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+  
+  @@map("projects")
+}
+
+model Task {
+  id            String        @id @default(cuid())
+  projectId     String
+  title         String
+  description   String?
+  status        String        @default("todo") // todo, in_progress, done
+  assignedToId  String?
+  dueDate       DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("tasks")
+}
+
